@@ -404,7 +404,38 @@
             chrome.runtime.openOptionsPage();
         }
 
-        function loadTabs(callback) {
+        // throttling was vibecoded and i'm fine with that.
+        const THROTTLE_DELAY = 1000; 
+        let throttleTimeout = null;
+        let savedArgs = null;
+
+        /**
+         * Throttled loadTabs. without throttling this can reallllllllly hurt perf when restoring many tabs (on browser restart, etc)
+         */
+        function loadTabs(...args) {
+            savedArgs = args;
+
+            if (throttleTimeout) {
+                // console.log(`Call throttled. Waiting for cooldown...`);
+                return;
+            }
+
+            // If there's no scheduled timeout, execute the function immediately.
+            innerLoadTabs(...savedArgs);
+            savedArgs = null; // Clear the saved arguments since we just used them.
+
+            throttleTimeout = setTimeout(() => {
+                throttleTimeout = null;
+                
+                // If loadTabs was called again during the cooldown period...
+                if (savedArgs) {
+                    // ...execute it one more time with the last saved arguments.
+                    loadTabs(...savedArgs);
+                }
+            }, THROTTLE_DELAY);
+        }
+
+        function innerLoadTabs(callback) {
             if (window.dontUpdate) return;
 
             chrome.windows.getAll({"populate": true}, function (windows) {
