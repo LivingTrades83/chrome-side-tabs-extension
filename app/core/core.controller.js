@@ -442,7 +442,7 @@
                      }
                      */
                 }
-
+                globalThis.vm = vm;
                 vm.data.windows = filteredWindows;
 
                 if (!$scope.$$phase) {
