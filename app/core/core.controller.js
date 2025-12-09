@@ -157,6 +157,64 @@
                     });
 
 
+                  document.querySelector('#savetofile').addEventListener('click', () => {
+                        const windowdata = vm.data.windows;
+                        const str = windowdata.map((w, i) => {
+                          const tabs = w.tabs.map(t => {
+                            let url = t.url;
+                            let title = t.title;
+                            let lastAccessed = new Date(t.lastAccessed).toISOString();
+
+                            if (t.url.startsWith('chrome-extension://lnepcdnpflggegdhpnnffojfdpfoambo')) {
+                              let u = URL.parse(t.url);
+                              let sp = new URLSearchParams(u.hash.slice(1));
+
+                              url = sp.get('uri');
+                              // if (sp.get('ttl') !== title) console.warn('different', {param: sp.get('ttl'), ext: title});
+                              title = sp.get('ttl');
+                              title += ' | 💤';
+                            }
+
+                            return {url, title, lastAccessed};
+
+                          });
+
+                          const maxLastAccessed = Math.max(...tabs.map(t => new Date(t.lastAccessed).getTime()));
+                          const tabsStr = tabs.map(t => `- [${t.title}](${t.url}) (last accessed: ${t.lastAccessed})`).join('\n');
+
+                          return `# window ${i} (${new Date(maxLastAccessed).toISOString()})\n\n${tabsStr}`;
+                        }).join('\n\n\n');
+
+
+                        const date = new Date();
+                        const timeStr = date.toLocaleTimeString('en-US', {hour12: false});
+                        const dateParts = date.toLocaleDateString('en-US', {
+                          year: 'numeric', month: '2-digit', day: '2-digit',
+                        }).split('/');
+                        // @ts-expect-error - parts exists
+                        dateParts.unshift(dateParts.pop());
+                        const dateStr = dateParts.join('-');
+
+                        const suffix = `${dateStr}_${timeStr}`;
+                        // replace characters that are unfriendly to filenames
+                        // filenamePrefix.replace(/[/?<>\\:*|"]/g, '-');
+
+                        const link = document.createElement('a');
+                        link.download = `tabs_${suffix}.md`;
+                        let blob;
+                        blob = new Blob([str], {type: 'text/plain'});
+                        const blobUrl = URL.createObjectURL(blob);
+                        link.href = blobUrl;
+                        link.click();
+                        URL.revokeObjectURL(blobUrl);
+
+
+
+
+
+                    });
+
+
                 }
             }, 200);
 
@@ -414,6 +472,9 @@
                 vm.data.numberOfPinnedTabs = 0;
 
                 var filteredWindows = [];
+
+                // TOP
+                document.querySelector('.tabs-wrapper').scrollTo(0, 0)
 
                 for (var i = 0; i < windows.length; i++) {
                     if (windows[i].type == "normal") {
